@@ -21,8 +21,12 @@ import java.io.File;
 // delete [index]   -   deletes an item from the cart based on item’s index (from list cmd);
 //                      for incorrect index provided, an error msg is displayed; 
 // D3 extensions
-// login [user]     -   login and displays user's cart items
-// save             -   saves 
+// login [user]     -   load the specified user’s database file from cart db dir;
+//                      if db doesn't exist, create new file;
+//                      e.g. login fred -> loads file from cartdb/fred.db
+//                      list the cart items;
+// save             -   saves contents of cart to user's cart file;
+//                      prints error msg if save cmd given without login of any user;
 // users            -   lists registered users
 public class Main {
     public static void main(String[] args) {
@@ -32,13 +36,9 @@ public class Main {
         if(args.length > 0)
             dirPath = args[0];
 
-        // Create dir if it doesn't exist
-        File newDirectory = new File(dirPath);
-        if(!newDirectory.exists()) 
-            newDirectory.mkdir();
-
-
-        List<String> itemsList = new ArrayList<>();     // list to store cart items
+        // Instantiate db & cart app
+        ShoppingCartDB cartDB = new ShoppingCartDB(dirPath);
+        Cart cart = new Cart(cartDB);
 
         Scanner inputScan = new Scanner(System.in);
         String cmd = "";
@@ -55,53 +55,32 @@ public class Main {
 
             switch (cmd) {
                 case Constants.CMD_LIST:
-                    if(itemsList.isEmpty())
-                        System.out.println("Your cart is empty");
-                    
-                    // Print every item in itemsList
-                    for (int i = 0; i < itemsList.size(); i++) 
-                        System.out.printf("%d. %s\n", i+1, itemsList.get(i));
+                    cart.listCartItems();
                     break;
 
                 case Constants.CMD_ADD:
                     // Get remaining line of input. Note nextLine() includes surrounding whitespaces
                     String[] inputArr = inputScan.nextLine().trim().split(",");
-                    
-                    // Loops thru each item in inputArr
-                    for(String item : inputArr) {
-                        // Remove whitespaces surrounding item & convert to lower case
-                        String itemProcessed = item.trim().toLowerCase();
-                        
-                        // If itemsList contains item
-                        if(itemsList.contains(itemProcessed))
-                            System.out.println("You have " + itemProcessed + " in your cart");
-                        else
-                        {
-                            itemsList.add(itemProcessed);
-                            System.out.println(itemProcessed + " added to cart");
-                        }           
-                    }      
+                    cart.add(inputArr);
                     break;
 
-                case Constants.CMD_DELETE:                    
-                    if(itemsList.isEmpty()) {
-                        System.out.println("Your cart is empty");
-                        break;
-                    }
-                        
+                case Constants.CMD_DELETE:                                            
                     // Get next token of input, ignoring whitespaces surrounding it
-                    // Assumption: index given is an int & is +1 of real index in list
-                    int index = Integer.parseInt(inputScan.next()) - 1;
+                    int index = Integer.parseInt(inputScan.next());
+                    cart.delete(index);
+                    break;
                     
-                    if(index < 0 || index > itemsList.size()-1) {
-                        System.out.println("Incorrect item index");
-                        break;
-                    }
-
-                    // Remove item as it is valid
-                    String itemRemoved = itemsList.remove(index);
-                    System.out.println(itemRemoved + " removed from cart");
-
+                case Constants.CMD_LOGIN:
+                    String user = inputScan.nextLine().trim();
+                    cart.login(user);
+                    break;
+                
+                case Constants.CMD_SAVE:
+                    cart.save();
+                    break;
+                    
+                case Constants.CMD_USERS:
+                    cart.listUsers();
                     break;
 
                 case Constants.CMD_EXIT:
@@ -119,4 +98,6 @@ public class Main {
         inputScan.close();
         System.out.println("Exiting program...");
     }
+
+    
 }
